@@ -3,23 +3,45 @@
 import os
 import argparse
 
-from docx import Document
+from docx.api import Document
 
 
 def main(directory, file_name):
+
     if not directory:
         return
     if not file_name:
         file_name = 'test'
+
     document = Document()
+    total_lines = 0
     for root, dirs, fs in os.walk(directory):
         for f in fs:
-            fpath = os.path.join(root, f)
-            fp = open(fpath, "r", encoding='utf-8')
-            document.add_paragraph(fp.read())
-            fp.close()
+            suffix = os.path.splitext(f)[1]
+            if suffix not in [".java", ".py", ".js", ".go", ".css", ".html", ".cpp", ".h"]:
+                continue
 
-    document.save(file_name)
+            fpath = os.path.join(root, f)
+            with open(fpath, "r") as fp:
+                try:
+                    lines = fp.readlines()
+                except Exception as e:
+                    print(fpath)
+                    continue
+
+                for line in lines:
+                    line = line.strip("\n").strip("\r\n")
+                    if not line:
+                        continue
+                    if "__author__ " in line or "__datetime__" in line:
+                        continue
+
+                    if total_lines > 3500:
+                        break
+                    document.add_paragraph(line)
+                    total_lines += 1
+
+    document.save(file_name+".docx")
 
 
 if __name__ == "__main__":
